@@ -30,7 +30,11 @@ public:
   inline void fill(unsigned int value) { m_value = value; }
   inline unsigned int get_value() const { return m_value; }
   inline bool is_empty() const { return (m_value == 0); }
-  inline void level_up() { m_value *= 2; }
+
+  unsigned int level_up() { 
+    m_value *= 2; 
+    return m_value; 
+  }
 
 private:
   unsigned int m_value;
@@ -50,9 +54,9 @@ public:
   Line(vector<Field*>& data) : m_data(data) {}
   vector<Field*>& get_data() const { return m_data; }
 
-  vector<Pair> merge(LineDirection direction) {
-    vector<Pair> merges;
+  unsigned int merge(LineDirection direction, vector<Pair>& merges) {
     unsigned int n = m_data.size();
+    unsigned int score = 0;
     Field* f = NULL;
     Field* g = NULL;
 
@@ -65,7 +69,7 @@ public:
 
 	g = m_data[i+1];
 	if (f->get_value() == g->get_value()) {
-	  f->level_up();
+	  score += f->level_up();
 	  g->clear();
 	  merges.push_back(Pair(i+1, i));
 	}
@@ -79,13 +83,14 @@ public:
 	
 	g = m_data[i-1];
 	if (f->get_value() == g->get_value()) {
-	  f->level_up();
+	  score += f->level_up();
 	  g->clear();
 	  merges.push_back(Pair(i-1, i));
 	}
       }
     }
-    return merges;
+
+    return score;
   }
 
   vector<Pair> move(LineDirection direction) {
@@ -104,7 +109,7 @@ public:
 	  m_data.push_back(*m_data.erase(it_begin + currentIndex));
 	} else {
 	  if (emptyFields > 0) {
-	    moves.push_back(Pair(currentIndex + emptyFields, currentIndex))
+	    moves.push_back(Pair(currentIndex + emptyFields, currentIndex));
 	  }
 	  currentIndex++;
 	}

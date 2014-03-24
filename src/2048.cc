@@ -15,7 +15,9 @@ int main(int argc, char** argv) {
 
   Line line(fields);
   cout << line << endl;
-  vector<Pair> merges = line.merge(FRONT);
+
+  vector<Pair> merges;
+  unsigned int score = line.merge(FRONT, merges);
   vector<Pair> moves = line.move(FRONT);
 
   return 0;
