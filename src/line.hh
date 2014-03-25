@@ -27,18 +27,17 @@ public:
   vector<Field> get_data() const { return m_data; }
 
   unsigned int merge(LineDirection direction, vector<Pair>& merges) {
-    Field f, g;
     unsigned int n = m_data.size();
     unsigned int score = 0;
 
     if (direction == FRONT) {
       for (unsigned int i = 0; i < n-1; ++i) {
-	f = m_data[i];
+	Field& f = m_data[i];
 	if (f.is_empty()) {
 	  continue;
 	}
 
-	g = m_data[i+1];
+	Field& g = m_data[i+1];
 	if (f.get_value() == g.get_value()) {
 	  score += f.level_up();
 	  g.clear();
@@ -47,12 +46,12 @@ public:
       }
     } else {
       for (unsigned int i = n-1; i > 0; --i) {
-	f = m_data[i];
+	Field& f = m_data[i];
 	if (f.is_empty()) {
 	  continue;
 	}
 
-	g = m_data[i-1];
+	Field& g = m_data[i-1];
 	if (f.get_value() == g.get_value()) {
 	  score += f.level_up();
 	  g.clear();

@@ -46,7 +46,7 @@ public:
       // fill field and remove it from m_empty_fields
       Pair coordinatePair = *iterator;
       m_fields[coordinatePair[0]][coordinatePair[1]].fill(value);
-      m_empty_fields.erase(iterator);
+      m_empty_fields.remove(*iterator);
       inserted_fields++;
     }
 
@@ -105,7 +105,7 @@ public:
     for (unsigned int i = 0; i < m_size; ++i) {
       // get row of column to merge
       Line line(this->get_line(i, orientation));
-
+      
       // do merge and update score
       vector<Pair> merges_on_current_line;
       if (direction == LEFT || direction == UP) {
@@ -116,16 +116,16 @@ public:
 
       // build merge list
       unsigned int n = merges_on_current_line.size();
-      for (unsigned int j = 0; j < n; ++i) {
+      for (unsigned int j = 0; j < n; ++j) {
 	Pair pair = merges_on_current_line[j];
 	if (orientation == ROW) {
 	  merges.push_back(Pair(i, pair[0]));
 	  merges.push_back(Pair(i, pair[1]));
-	  m_empty_fields.remove(Pair(i, pair[0]));
+	  m_empty_fields.push_back(Pair(i, pair[0]));
 	} else {
 	  merges.push_back(Pair(pair[0], 1));
 	  merges.push_back(Pair(pair[1], 1));
-	  m_empty_fields.remove(Pair(pair[0], i));
+	  m_empty_fields.push_back(Pair(pair[0], i));
 	}
       }
 
