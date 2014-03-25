@@ -1,24 +1,26 @@
 #include <iostream>
+#include <list>
+#include <vector>
+
 #include "grid.hh"
 
 using namespace std;
 
+
 int main(int argc, char** argv) {
-  Field f(0);
-  Field g(0);
-  Field h(1);
+  list<Pair> lst;
+  vector<Pair> vec;
 
-  vector<Field*> fields;
-  fields.push_back(&f);
-  fields.push_back(&g);
-  fields.push_back(&h);
+  Grid grid(4);
+  grid.fill_fields(6, 2);
+  cout << grid << endl << endl;
 
-  Line line(fields);
-  cout << line << endl;
-
-  vector<Pair> merges;
-  unsigned int score = line.merge(FRONT, merges);
-  vector<Pair> moves = line.move(FRONT);
+  grid.move(DOWN, vec);
+  print_vector(vec);
+  cout << endl << grid << endl;
+  lst = grid.get_empty_fields();
+  print_list(lst);
+  cout << endl;
 
   return 0;
 }

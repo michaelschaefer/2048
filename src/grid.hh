@@ -1,141 +1,225 @@
 #ifndef __GRID_HH__
 #define __GRID_HH__
 
+
+// standard library includes
 #include <iostream>
+#include <list>
+#include <stdlib.h>
+#include <time.h>
 #include <vector>
 
+// project includes
+#include "enums.hh"
+#include "field.hh"
+#include "line.hh"
+#include "pair.hh"
+
+
+// namespace declarations
 using namespace std;
 
-enum LineDirection { FRONT = 1, BACK = 2 };
-enum MoveDirection { LEFT = 1, RIGHT = 2, UP = 3, DOWN = 4 };
 
-class Pair {
+class Grid {
 public:
-  Pair(unsigned int x, unsigned int y) : m_x(x), m_y(y) {}
-  unsigned int& operator[] (unsigned int index) {
-    if (index >= 1) {
-      return m_y;
-    }
-    return m_x;
+  Grid(unsigned int size) : m_size(size) {
+    this->initialize(0);
   }
 
-private:
-  unsigned int m_x, m_y;
-};
+  unsigned int fill_fields(unsigned int n_fields, unsigned int value) {
+    list<Pair>::iterator iterator;
+    unsigned int index = 0, inserted_fields = 0;
 
-class Field {
-public:
-  Field(unsigned int value) : m_value(value) {}  
-  inline void clear() { m_value = 0; }
-  inline void fill(unsigned int value) { m_value = value; }
-  inline unsigned int get_value() const { return m_value; }
-  inline bool is_empty() const { return (m_value == 0); }
+    // init random generator
+    srand(time(NULL));
 
-  unsigned int level_up() { 
-    m_value *= 2; 
-    return m_value; 
-  }
-
-private:
-  unsigned int m_value;
-};
-
-bool operator==(Field const& lhs, Field const& rhs) {
-  return (lhs.get_value() == rhs.get_value());
-}
-
-ostream& operator<<(ostream& stream, const Field& field) {
-  return (stream << field.get_value());
-}
-
-
-class Line {  
-public:  
-  Line(vector<Field*>& data) : m_data(data) {}
-  vector<Field*>& get_data() const { return m_data; }
-
-  unsigned int merge(LineDirection direction, vector<Pair>& merges) {
-    unsigned int n = m_data.size();
-    unsigned int score = 0;
-    Field* f = NULL;
-    Field* g = NULL;
-
-    if (direction == FRONT) {
-      for (unsigned int i = 0; i < n-1; ++i) {
-	f = m_data[i];
-	if (f->is_empty()) {
-	  continue;
-	}
-
-	g = m_data[i+1];
-	if (f->get_value() == g->get_value()) {
-	  score += f->level_up();
-	  g->clear();
-	  merges.push_back(Pair(i+1, i));
-	}
+    for (unsigned int i = 0; i < n_fields; ++i) {
+      if (m_empty_fields.empty()) {
+	break;
       }
+
+      // move iterator to random free field
+      index = rand() % m_empty_fields.size();
+      iterator = m_empty_fields.begin();
+      advance(iterator, index);
+
+      // fill field and remove it from m_empty_fields
+      Pair coordinatePair = *iterator;
+      m_fields[coordinatePair[0]][coordinatePair[1]].fill(value);
+      m_empty_fields.erase(iterator);
+      inserted_fields++;
+    }
+
+    return inserted_fields;
+  }
+
+  list<Pair> get_empty_fields() { return m_empty_fields; }
+
+  vector<vector<Field> > get_fields() { return m_fields; }
+
+  vector<Field> get_line(unsigned int index, LineOrientation orientation) const {
+    if (index >= m_size) {
+      index = m_size - 1;
+    }
+
+    if (orientation == ROW) {
+      return m_fields[index];
     } else {
-      for (unsigned int i = n-1; i > 0; --i) {
-	f = m_data[i];
-	if (f->is_empty()) {
-	  continue;
+      vector<Field> column;
+      for (unsigned int i = 0; i < m_size; ++i) {
+	column.push_back(m_fields[i][index]);
+      }
+      return column;
+    }
+  }
+
+  unsigned int get_size() const { return m_size; }
+
+  bool is_locked() {
+    if (m_empty_fields.empty() == false) {
+      return false;
+    }
+
+    for (unsigned int i = 0; i < m_size; ++i) {
+      for (unsigned int j = 0; j < m_size-1; ++j) {
+	if (m_fields[i][j].get_value() == m_fields[i][j+1].get_value()) {
+	  return false;
 	}
-	
-	g = m_data[i-1];
-	if (f->get_value() == g->get_value()) {
-	  score += f->level_up();
-	  g->clear();
-	  merges.push_back(Pair(i-1, i));
+	if (m_fields[j][i].get_value() == m_fields[j+1][i].get_value()) {
+	  return false;
 	}
       }
     }
+  }
 
+  unsigned int merge(MoveDirection direction, vector<Pair>& merges) {
+    LineOrientation orientation;
+    unsigned int score = 0;
+
+    if (direction == LEFT || direction == RIGHT) {
+      orientation = ROW;
+    } else {
+      orientation = COLUMN;
+    }
+
+    for (unsigned int i = 0; i < m_size; ++i) {
+      // get row of column to merge
+      Line line(this->get_line(i, orientation));
+
+      // do merge and update score
+      vector<Pair> merges_on_current_line;
+      if (direction == LEFT || direction == UP) {
+	score += line.merge(FRONT, merges_on_current_line);
+      } else {
+	score += line.merge(BACK, merges_on_current_line);
+      }
+
+      // build merge list
+      unsigned int n = merges_on_current_line.size();
+      for (unsigned int j = 0; j < n; ++i) {
+	Pair pair = merges_on_current_line[j];
+	if (orientation == ROW) {
+	  merges.push_back(Pair(i, pair[0]));
+	  merges.push_back(Pair(i, pair[1]));
+	  m_empty_fields.remove(Pair(i, pair[0]));
+	} else {
+	  merges.push_back(Pair(pair[0], 1));
+	  merges.push_back(Pair(pair[1], 1));
+	  m_empty_fields.remove(Pair(pair[0], i));
+	}
+      }
+
+      // overwrite changes
+      this->overwrite(i, orientation, line.get_data());
+    }
+
+    m_empty_fields.sort();
     return score;
   }
 
-  vector<Pair> move(LineDirection direction) {
-    vector<Pair> moves;
-    unsigned int emptyFields = 0;
-    unsigned int n = m_data.size();
-    Field* f = NULL;
+  void move(MoveDirection direction, vector<Pair>& moves) {
+    LineOrientation orientation;
 
-    if (direction == FRONT) {
-      unsigned currentIndex = 0;
-      vector<Field*>::iterator it_begin = m_data.begin();
-      for (unsigned int i = 0; i < n; ++i) {
-	f = m_data[currentIndex];
-	if (f->is_empty()) {
-	  emptyFields++;
-	  m_data.push_back(*m_data.erase(it_begin + currentIndex));
-	} else {
-	  if (emptyFields > 0) {
-	    moves.push_back(Pair(currentIndex + emptyFields, currentIndex));
-	  }
-	  currentIndex++;
-	}
-      }
+    if (direction == LEFT || direction == RIGHT) {
+      orientation = ROW;
+    } else {
+      orientation = COLUMN;
     }
-    return moves;
+
+    for (unsigned int i = 0; i < m_size; ++i) {
+      // get row or column to move
+      Line line(this->get_line(i, orientation));
+
+      // move current line
+      vector<Pair> moves_on_current_line;
+      if (direction == LEFT || direction == UP) {
+	line.move(FRONT, moves_on_current_line);
+      } else {
+	line.move(BACK, moves_on_current_line);
+      }
+
+      // build move list
+      unsigned int n = moves_on_current_line.size();
+      for (unsigned int j = 0; j < n; ++j) {
+	Pair pair = moves_on_current_line[j];
+	Pair from, to;
+	if (orientation == ROW) {
+	  from = Pair(i, pair[0]);
+	  to = Pair(i, pair[1]);
+	} else {
+	  from = Pair(pair[0], i);
+	  to = Pair(pair[1], i);
+	}
+	moves.push_back(from);
+	moves.push_back(to);
+	m_empty_fields.remove(to);
+	m_empty_fields.push_back(from);
+      }
+
+      // overwrite changes
+      this->overwrite(i, orientation, line.get_data());
+    }
+
+    m_empty_fields.sort();
   }
 
 private:
-  vector<Field*>& m_data;
+  void initialize(unsigned int value) {
+    for (unsigned int i = 0; i < m_size; ++i) {
+      m_fields.push_back(vector<Field>());
+      for (unsigned int j = 0; j < m_size; ++j) {
+	m_fields[i].push_back(Field(value));
+	m_empty_fields.push_back(Pair(i, j));
+      }
+    }
+  }
+
+  void overwrite(unsigned int index, LineOrientation orientation, vector<Field> data) {
+    if (index >= m_size || data.size() < m_size) {
+      return;
+    }
+
+    for (unsigned int i = 0; i < m_size; ++i) {
+      if (orientation == ROW) {
+	m_fields[index][i] = data[i];
+      } else {
+	m_fields[i][index] = data[i];
+      }
+    }
+  }
+
+  unsigned int m_size;
+  list<Pair> m_empty_fields;
+  vector<vector<Field> > m_fields;
 };
 
-ostream& operator<<(ostream& stream, const Line& line) {
-  vector<Field*>& data = line.get_data();
-  vector<Field*>::iterator it = data.begin();
-  while (true) {
-    stream << *(*it);
-    ++it;
-    if (it == data.end()) {
-      break;
-    }
-    stream << ", ";
+ostream& operator<<(ostream& stream, const Grid& grid) {
+  unsigned int n = grid.get_size();
+  for (unsigned int i = 0; i < n; ++i) {
+    stream << Line(grid.get_line(i, ROW)) << endl;
   }
   return stream;
 }
-
 
 
 #endif // __GRID_HH__
