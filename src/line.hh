@@ -116,7 +116,7 @@ ostream& operator<<(ostream& stream, const Line& line) {
     if (it == data.end()) {
       break;
     }
-    stream << ", ";
+    stream << ",\t\t";
   }
   return stream;
 }

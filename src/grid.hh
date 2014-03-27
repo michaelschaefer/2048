@@ -90,6 +90,8 @@ public:
 	}
       }
     }
+
+    return true;
   }
 
   unsigned int merge(MoveDirection direction, vector<Pair>& merges) {
